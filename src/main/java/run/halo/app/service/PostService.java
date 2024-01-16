@@ -1,9 +1,13 @@
 package run.halo.app.service;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import javax.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.lang.NonNull;
-import run.halo.app.model.dto.post.BasePostDetailDTO;
 import run.halo.app.model.entity.Post;
 import run.halo.app.model.entity.PostMeta;
 import run.halo.app.model.enums.PostStatus;
@@ -11,12 +15,8 @@ import run.halo.app.model.params.PostQuery;
 import run.halo.app.model.vo.ArchiveMonthVO;
 import run.halo.app.model.vo.ArchiveYearVO;
 import run.halo.app.model.vo.PostDetailVO;
-import run.halo.app.model.vo.PostListVO;
+import run.halo.app.model.vo.PostMarkdownVO;
 import run.halo.app.service.base.BasePostService;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Post service interface.
@@ -32,7 +32,7 @@ public interface PostService extends BasePostService<Post> {
      * Pages posts.
      *
      * @param postQuery post query must not be null
-     * @param pageable  page info must not be null
+     * @param pageable page info must not be null
      * @return a page of post
      */
     @NonNull
@@ -41,7 +41,7 @@ public interface PostService extends BasePostService<Post> {
     /**
      * Pages post by keyword
      *
-     * @param keyword  keyword
+     * @param keyword keyword
      * @param pageable pageable
      * @return a page of post
      */
@@ -51,50 +51,115 @@ public interface PostService extends BasePostService<Post> {
     /**
      * Creates post by post param.
      *
-     * @param post        post must not be null
-     * @param tagIds      tag id set
+     * @param post post must not be null
+     * @param tagIds tag id set
      * @param categoryIds category id set
-     * @param postMetas   post metas
-     * @param autoSave    autoSave
+     * @param metas metas
+     * @param autoSave autoSave
      * @return post created
      */
     @NonNull
-    PostDetailVO createBy(@NonNull Post post, Set<Integer> tagIds, Set<Integer> categoryIds, Set<PostMeta> postMetas, boolean autoSave);
+    PostDetailVO createBy(@NonNull Post post, Set<Integer> tagIds, Set<Integer> categoryIds,
+        Set<PostMeta> metas, boolean autoSave);
 
     /**
      * Creates post by post param.
      *
-     * @param post        post must not be null
-     * @param tagIds      tag id set
+     * @param post post must not be null
+     * @param tagIds tag id set
      * @param categoryIds category id set
-     * @param autoSave    autoSave
+     * @param autoSave autoSave
      * @return post created
      */
     @NonNull
-    PostDetailVO createBy(@NonNull Post post, Set<Integer> tagIds, Set<Integer> categoryIds, boolean autoSave);
+    PostDetailVO createBy(@NonNull Post post, Set<Integer> tagIds, Set<Integer> categoryIds,
+        boolean autoSave);
 
     /**
      * Updates post by post, tag id set and category id set.
      *
      * @param postToUpdate post to update must not be null
-     * @param tagIds       tag id set
-     * @param categoryIds  category id set
-     * @param autoSave     autoSave
+     * @param tagIds tag id set
+     * @param categoryIds category id set
+     * @param metas metas
+     * @param autoSave autoSave
      * @return updated post
      */
     @NonNull
-    PostDetailVO updateBy(@NonNull Post postToUpdate, Set<Integer> tagIds, Set<Integer> categoryIds, Set<PostMeta> postMetas, boolean autoSave);
+    PostDetailVO updateBy(@NonNull Post postToUpdate, Set<Integer> tagIds, Set<Integer> categoryIds,
+        Set<PostMeta> metas, boolean autoSave);
 
     /**
-     * Gets post by post status and url.
+     * Gets post by post status and slug.
      *
      * @param status post status must not be null
-     * @param url    post url must not be blank
+     * @param slug post slug must not be blank
      * @return post info
      */
     @NonNull
     @Override
-    Post getBy(@NonNull PostStatus status, @NonNull String url);
+    Post getBy(@NonNull PostStatus status, @NonNull String slug);
+
+    /**
+     * Gets post by post year and month and slug.
+     *
+     * @param year post create year.
+     * @param month post create month.
+     * @param slug post slug.
+     * @return post info
+     */
+    @NonNull
+    Post getBy(@NonNull Integer year, @NonNull Integer month, @NonNull String slug);
+
+    /**
+     * Gets post by post year and slug.
+     *
+     * @param year post create year.
+     * @param slug post slug.
+     * @return post info
+     */
+    @NonNull
+    Post getBy(@NonNull Integer year, @NonNull String slug);
+
+    /**
+     * Gets post by post year and month and slug.
+     *
+     * @param year post create year.
+     * @param month post create month.
+     * @param slug post slug.
+     * @param status post status.
+     * @return post info
+     */
+    @NonNull
+    Post getBy(@NonNull Integer year, @NonNull Integer month, @NonNull String slug,
+        @NonNull PostStatus status);
+
+    /**
+     * Gets post by post year and month and slug.
+     *
+     * @param year post create year.
+     * @param month post create month.
+     * @param day post create day.
+     * @param slug post slug.
+     * @return post info
+     */
+    @NonNull
+    Post getBy(@NonNull Integer year, @NonNull Integer month, @NonNull Integer day,
+        @NonNull String slug);
+
+    /**
+     * Gets post by post year and month and slug.
+     *
+     * @param year post create year.
+     * @param month post create month.
+     * @param day post create day.
+     * @param slug post slug.
+     * @param status post status.
+     * @return post info
+     */
+    @NonNull
+    Post getBy(@NonNull Integer year, @NonNull Integer month, @NonNull Integer day,
+        @NonNull String slug, @NonNull PostStatus status);
 
     /**
      * Removes posts in batch.
@@ -150,43 +215,28 @@ public interface PostService extends BasePostService<Post> {
     String exportMarkdown(@NonNull Post post);
 
     /**
-     * Converts to detail vo.
-     *
-     * @param post post must not be null
-     * @return post detail vo
-     */
-    @NonNull
-    PostDetailVO convertToDetailVo(@NonNull Post post);
-
-    /**
-     * Converts to a page of post list vo.
-     *
-     * @param postPage post page must not be null
-     * @return a page of post list vo
-     */
-    @NonNull
-    Page<PostListVO> convertToListVo(@NonNull Page<Post> postPage);
-
-    /**
-     * Converts to a page of post detail dto.
-     *
-     * @param postPage post page must not be null
-     * @return a page of post detail dto
-     */
-    Page<BasePostDetailDTO> convertToDetailDto(@NonNull Page<Post> postPage);
-
-    /**
-     * Converts to a page of detail vo.
-     *
-     * @param postPage post page must not be null
-     * @return a page of post detail vo
-     */
-    Page<PostDetailVO> convertToDetailVo(@NonNull Page<Post> postPage);
-
-    /**
      * Publish a post visit event.
      *
      * @param postId postId must not be null
      */
     void publishVisitEvent(@NonNull Integer postId);
+
+    /**
+     * Get Post Pageable default sort
+     *
+     * @return post default sort
+     * @description contains three parts. First, Top Priority; Second, From Custom index sort;
+     * Third, basic id sort
+     */
+    @NotNull
+    Sort getPostDefaultSort();
+
+
+    /**
+     * Lists PostMarkdown vo
+     *
+     * @return a list of PostMarkdown vo
+     */
+    @NonNull
+    List<PostMarkdownVO> listPostMarkdowns();
 }

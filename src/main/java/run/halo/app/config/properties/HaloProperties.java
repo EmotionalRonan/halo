@@ -1,40 +1,36 @@
 package run.halo.app.config.properties;
 
+import static run.halo.app.model.support.HaloConst.FILE_SEPARATOR;
+import static run.halo.app.model.support.HaloConst.TEMP_DIR;
+import static run.halo.app.model.support.HaloConst.USER_HOME;
+import static run.halo.app.utils.HaloUtils.ensureSuffix;
+
+import java.time.Duration;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.time.Duration;
-
-import static run.halo.app.model.support.HaloConst.*;
-import static run.halo.app.utils.HaloUtils.ensureSuffix;
+import run.halo.app.model.enums.Mode;
 
 
 /**
  * Halo configuration properties.
  *
  * @author johnniang
+ * @author ryanwang
+ * @date 2019-03-15
  */
 @Data
 @ConfigurationProperties("halo")
 public class HaloProperties {
 
     /**
-     * Doc api disabled. (Default is true)
-     */
-    private boolean docDisabled = true;
-
-    /**
-     * Production env. (Default is true)
-     */
-    private boolean productionEnv = true;
-
-    /**
-     * Authentication enabled
+     * Authentication enabled.
      */
     private boolean authEnabled = true;
+
+    /**
+     * Halo startup mode.
+     */
+    private Mode mode = Mode.PRODUCTION;
 
     /**
      * Admin path.
@@ -49,7 +45,20 @@ public class HaloProperties {
     /**
      * Halo backup directory.(Not recommended to modify this config);
      */
-    private String backupDir = ensureSuffix(TEMP_DIR, FILE_SEPARATOR) + "halo-backup" + FILE_SEPARATOR;
+    private String backupDir =
+        ensureSuffix(TEMP_DIR, FILE_SEPARATOR) + "halo-backup" + FILE_SEPARATOR;
+
+    /**
+     * Halo backup markdown directory.(Not recommended to modify this config);
+     */
+    private String backupMarkdownDir =
+        ensureSuffix(TEMP_DIR, FILE_SEPARATOR) + "halo-backup-markdown" + FILE_SEPARATOR;
+
+    /**
+     * Halo data export directory.
+     */
+    private String dataExportDir =
+        ensureSuffix(TEMP_DIR, FILE_SEPARATOR) + "halo-data-export" + FILE_SEPARATOR;
 
     /**
      * Upload prefix.
@@ -61,9 +70,10 @@ public class HaloProperties {
      */
     private Duration downloadTimeout = Duration.ofSeconds(30);
 
-    public HaloProperties() throws IOException {
-        // Create work directory if not exist
-        Files.createDirectories(Paths.get(workDir));
-        Files.createDirectories(Paths.get(backupDir));
-    }
+    /**
+     * cache store impl
+     * memory
+     * level
+     */
+    private String cache = "memory";
 }

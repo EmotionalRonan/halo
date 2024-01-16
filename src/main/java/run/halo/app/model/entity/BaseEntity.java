@@ -1,12 +1,17 @@
 package run.halo.app.model.entity;
 
+import java.util.Date;
+import javax.persistence.Column;
+import javax.persistence.MappedSuperclass;
+import javax.persistence.PrePersist;
+import javax.persistence.PreRemove;
+import javax.persistence.PreUpdate;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import run.halo.app.utils.DateUtils;
-
-import javax.persistence.*;
-import java.util.Date;
 
 /**
  * Base entity.
@@ -23,26 +28,19 @@ public class BaseEntity {
     /**
      * Create time.
      */
-    @Column(name = "create_time", columnDefinition = "timestamp default CURRENT_TIMESTAMP")
+    @Column(name = "create_time")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createTime;
 
     /**
      * Update time.
      */
-    @Column(name = "update_time", columnDefinition = "timestamp default CURRENT_TIMESTAMP")
+    @Column(name = "update_time")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updateTime;
 
-    /**
-     * Delete flag.
-     */
-    @Column(name = "deleted", columnDefinition = "TINYINT default 0")
-    private Boolean deleted = false;
-
     @PrePersist
     protected void prePersist() {
-        deleted = false;
         Date now = DateUtils.now();
         if (createTime == null) {
             createTime = now;

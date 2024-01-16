@@ -1,19 +1,18 @@
 package run.halo.app.utils;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author johnniang
  * @date 19-4-29
  */
-public class JsonUtilsTest {
+class JsonUtilsTest {
 
     @Test
-    public void longConvertTest() throws IOException {
+    void longConvertTest() throws IOException {
         long num = 10;
 
         String result = JsonUtils.objectToJson(num);

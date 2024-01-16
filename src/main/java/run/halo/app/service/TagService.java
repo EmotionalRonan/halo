@@ -1,12 +1,11 @@
 package run.halo.app.service;
 
+import java.util.List;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import run.halo.app.model.dto.TagDTO;
 import run.halo.app.model.entity.Tag;
 import run.halo.app.service.base.CrudService;
-
-import java.util.List;
 
 /**
  * Tag service interface.
@@ -18,22 +17,22 @@ import java.util.List;
 public interface TagService extends CrudService<Tag, Integer> {
 
     /**
-     * Get tag by slug name
+     * Get tag by slug
      *
-     * @param slugName slug name
+     * @param slug slug
      * @return Tag
      */
     @NonNull
-    Tag getBySlugNameOfNonNull(@NonNull String slugName);
+    Tag getBySlugOfNonNull(@NonNull String slug);
 
     /**
-     * Get tag by slug name
+     * Get tag by slug
      *
-     * @param slugName slug name
+     * @param slug slug
      * @return tag
      */
-    @NonNull
-    Tag getBySlugName(@NonNull String slugName);
+    @Nullable
+    Tag getBySlug(@NonNull String slug);
 
     /**
      * Get tag by tag name.

@@ -1,37 +1,25 @@
 package run.halo.app.service;
 
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
-import org.springframework.web.multipart.MultipartFile;
-import run.halo.app.handler.theme.config.support.Group;
-import run.halo.app.handler.theme.config.support.ThemeProperty;
-import run.halo.app.model.support.ThemeFile;
-
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
+import org.springframework.web.multipart.MultipartFile;
+import run.halo.app.handler.theme.config.support.Group;
+import run.halo.app.handler.theme.config.support.Item;
+import run.halo.app.handler.theme.config.support.ThemeProperty;
+import run.halo.app.model.support.ThemeFile;
 
 /**
  * Theme service interface.
  *
  * @author ryanwang
+ * @author guqing
  * @date 2019-03-26
  */
 public interface ThemeService {
-
-    /**
-     * Theme property file name.
-     */
-    @Deprecated
-    String THEME_PROPERTY_FILE_NAME = "theme.yaml";
-
-    /**
-     * Theme property file name.
-     */
-    String[] THEME_PROPERTY_FILE_NAMES = {"theme.yaml", "theme.yml"};
-
 
     /**
      * Configuration file name.
@@ -44,25 +32,9 @@ public interface ThemeService {
     String[] CAN_EDIT_SUFFIX = {".ftl", ".css", ".js", ".yaml", ".yml", ".properties"};
 
     /**
-     * These file names cannot be displayed.
-     */
-    String[] FILTER_FILES = {".git", ".DS_Store", "theme.yaml", "theme.yml", "settings.yaml", "settings.yml"};
-
-    /**
      * Theme folder location.
      */
     String THEME_FOLDER = "templates/themes";
-
-    /**
-     * Theme screenshots name.
-     */
-    String THEME_SCREENSHOTS_NAME = "screenshot";
-
-
-    /**
-     * Render template.
-     */
-    String RENDER_TEMPLATE = "themes/%s/%s";
 
     /**
      * Theme cache key.
@@ -80,16 +52,6 @@ public interface ThemeService {
     String CUSTOM_POST_PREFIX = "post_";
 
     /**
-     * Theme provider remote name.
-     */
-    String THEME_PROVIDER_REMOTE_NAME = "theme-provider";
-
-    /**
-     * Default remote branch name.
-     */
-    String DEFAULT_REMOTE_BRANCH = "master";
-
-    /**
      * Get theme property by theme id.
      *
      * @param themeId must not be blank
@@ -105,52 +67,38 @@ public interface ThemeService {
      * @return a optional theme property
      */
     @NonNull
-    Optional<ThemeProperty> getThemeBy(@Nullable String themeId);
+    Optional<ThemeProperty> fetchThemePropertyBy(@Nullable String themeId);
 
     /**
-     * Gets all themes
+     * Gets all themes.
      *
      * @return set of themes
      */
     @NonNull
-    Set<ThemeProperty> getThemes();
-
-    /**
-     * Lists theme folder by absolute path.
-     *
-     * @param absolutePath absolutePath
-     * @return List<ThemeFile>
-     */
-    List<ThemeFile> listThemeFolder(@NonNull String absolutePath);
+    List<ThemeProperty> getThemes();
 
     /**
      * Lists theme folder by theme name.
      *
      * @param themeId theme id
-     * @return List<ThemeFile>
+     * @return theme file list
      */
+    @NonNull
     List<ThemeFile> listThemeFolderBy(@NonNull String themeId);
 
     /**
-     * Lists a set of custom template, such as sheet_xxx.ftl, and xxx will be template name
+     * Lists a set of custom template, such as sheet_xxx.ftl/post_xxx.ftl, and xxx will be
+     * template name
      *
      * @param themeId theme id must not be blank
+     * @param prefix post_ or sheet_
      * @return a set of templates
      */
-    @Deprecated
-    Set<String> listCustomTemplates(@NonNull String themeId);
+    @NonNull
+    List<String> listCustomTemplates(@NonNull String themeId, @NonNull String prefix);
 
     /**
-     * Lists a set of custom template, such as sheet_xxx.ftl/post_xxx.ftl, and xxx will be template name
-     *
-     * @param themeId theme id must not be blank
-     * @param prefix  post_ or sheet_
-     * @return a set of templates
-     */
-    Set<String> listCustomTemplates(@NonNull String themeId, @NonNull String prefix);
-
-    /**
-     * Judging whether template exists under the specified theme
+     * Judging whether template exists under the specified theme.
      *
      * @param template template must not be blank
      * @return boolean
@@ -158,7 +106,7 @@ public interface ThemeService {
     boolean templateExists(@Nullable String template);
 
     /**
-     * Checks whether theme exists under template path
+     * Checks whether theme exists under template path.
      *
      * @param themeId theme id
      * @return boolean
@@ -183,7 +131,7 @@ public interface ThemeService {
     /**
      * Gets template content by template absolute path and themeId.
      *
-     * @param themeId      themeId
+     * @param themeId themeId
      * @param absolutePath absolute path
      * @return template content
      */
@@ -193,25 +141,27 @@ public interface ThemeService {
      * Saves template content by template absolute path.
      *
      * @param absolutePath absolute path
-     * @param content      new content
+     * @param content new content
      */
     void saveTemplateContent(@NonNull String absolutePath, @NonNull String content);
 
     /**
      * Saves template content by template absolute path and themeId.
      *
-     * @param themeId      themeId
+     * @param themeId themeId
      * @param absolutePath absolute path
-     * @param content      new content
+     * @param content new content
      */
-    void saveTemplateContent(@NonNull String themeId, @NonNull String absolutePath, @NonNull String content);
+    void saveTemplateContent(@NonNull String themeId, @NonNull String absolutePath,
+        @NonNull String content);
 
     /**
      * Deletes a theme by key.
      *
      * @param themeId theme id must not be blank
+     * @param deleteSettings whether all settings of the specified theme should be deleted.
      */
-    void deleteTheme(@NonNull String themeId);
+    void deleteTheme(@NonNull String themeId, @NonNull Boolean deleteSettings);
 
     /**
      * Fetches theme configuration.
@@ -223,6 +173,15 @@ public interface ThemeService {
     List<Group> fetchConfig(@NonNull String themeId);
 
     /**
+     * Fetch config items by <code>themeId</code> and <code>group</code>.
+     *
+     * @param themeId theme id must not be blank
+     * @param group group name must not be blank
+     * @return config items
+     */
+    Set<Item> fetchConfigItemsBy(@NonNull String themeId, String group);
+
+    /**
      * Renders a theme page.
      *
      * @param pageName must not be blank
@@ -230,6 +189,15 @@ public interface ThemeService {
      */
     @NonNull
     String render(@NonNull String pageName);
+
+    /**
+     * Renders a theme page.
+     *
+     * @param pageName must not be blank
+     * @return full path of the theme page
+     */
+    @NonNull
+    String renderWithSuffix(@NonNull String pageName);
 
     /**
      * Gets current theme id.
@@ -248,6 +216,14 @@ public interface ThemeService {
     ThemeProperty getActivatedTheme();
 
     /**
+     * Fetch activated theme property.
+     *
+     * @return activated theme property
+     */
+    @NonNull
+    Optional<ThemeProperty> fetchActivatedTheme();
+
+    /**
      * Actives a theme.
      *
      * @param themeId theme id must not be blank
@@ -264,16 +240,6 @@ public interface ThemeService {
      */
     @NonNull
     ThemeProperty upload(@NonNull MultipartFile file);
-
-    /**
-     * Adds a new theme.
-     *
-     * @param themeTmpPath theme temporary path must not be null
-     * @return theme property
-     * @throws IOException IOException
-     */
-    @NonNull
-    ThemeProperty add(@NonNull Path themeTmpPath) throws IOException;
 
     /**
      * Fetches a new theme.
@@ -302,7 +268,7 @@ public interface ThemeService {
      * Updates theme by theme id.
      *
      * @param themeId theme id must not be blank
-     * @param file    multipart file must not be null
+     * @param file multipart file must not be null
      * @return theme info
      */
     ThemeProperty update(@NonNull String themeId, @NonNull MultipartFile file);

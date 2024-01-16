@@ -1,5 +1,6 @@
 package run.halo.app.service;
 
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -10,8 +11,6 @@ import run.halo.app.model.params.PhotoParam;
 import run.halo.app.model.params.PhotoQuery;
 import run.halo.app.model.vo.PhotoTeamVO;
 import run.halo.app.service.base.CrudService;
-
-import java.util.List;
 
 /**
  * Photo service interface.
@@ -58,7 +57,7 @@ public interface PhotoService extends CrudService<Photo, Integer> {
     /**
      * Pages photo output dtos.
      *
-     * @param pageable   page info must not be null
+     * @param pageable page info must not be null
      * @param photoQuery photoQuery
      * @return a page of photo output dto
      */
@@ -80,4 +79,11 @@ public interface PhotoService extends CrudService<Photo, Integer> {
      * @return list of teams
      */
     List<String> listAllTeams();
+
+    /**
+     * Increases photo likes(1).
+     *
+     * @param photoId photo id must not be null
+     */
+    void increaseLike(Integer photoId);
 }

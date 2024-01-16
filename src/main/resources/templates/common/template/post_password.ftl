@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
     <meta name="robots" content="noindex,nofllow"/>
-    <title>私密文章访问 - ${options.blog_title!}</title>
+    <title>私密文章访问 - ${blog_title!}</title>
     <style>
         body {
             background-color: #080821;
@@ -152,14 +152,15 @@
 </head>
 <body>
 <div class="container">
-    <form method="post" action="${context!}/archives/${url}/password">
+    <form method="post" action="${blog_url!}/content/${type!}/${slug!}/authentication">
         <div class="password-input">
-            <input type="password" name="password" placeholder="请输入文章访问密码">
+            <input type="password" name="password" placeholder="请输入访问密码">
             <span class="bottom"></span>
             <span class="right"></span>
             <span class="top"></span>
             <span class="left"></span>
         </div>
+        <div style="margin-top: 8px;color: red;">${errorMsg!}</div>
         <div class="submit-input">
             <button type="submit">验证</button>
         </div>

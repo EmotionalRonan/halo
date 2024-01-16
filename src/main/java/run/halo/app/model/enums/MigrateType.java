@@ -9,21 +9,11 @@ package run.halo.app.model.enums;
 public enum MigrateType implements ValueEnum<Integer> {
 
     /**
-     * Halo version 0.4.4
+     * Halo
      */
-    OLD_VERSION(0),
+    HALO(0);
 
-    /**
-     * WordPress
-     */
-    WORDPRESS(1),
-
-    /**
-     * cnblogs.com
-     */
-    CNBLOGS(2);
-
-    private Integer value;
+    private final Integer value;
 
     MigrateType(Integer value) {
         this.value = value;

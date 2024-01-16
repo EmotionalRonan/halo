@@ -1,21 +1,36 @@
 package run.halo.app.listener.comment;
 
-import cn.hutool.core.lang.Validator;
-import cn.hutool.core.text.StrBuilder;
-import cn.hutool.core.util.StrUtil;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionalEventListener;
 import run.halo.app.event.comment.CommentNewEvent;
 import run.halo.app.event.comment.CommentReplyEvent;
 import run.halo.app.exception.ServiceException;
-import run.halo.app.model.entity.*;
+import run.halo.app.mail.MailService;
+import run.halo.app.model.dto.post.BasePostMinimalDTO;
+import run.halo.app.model.entity.Journal;
+import run.halo.app.model.entity.JournalComment;
+import run.halo.app.model.entity.PostComment;
+import run.halo.app.model.entity.SheetComment;
+import run.halo.app.model.entity.User;
+import run.halo.app.model.enums.CommentStatus;
 import run.halo.app.model.properties.CommentProperties;
-import run.halo.app.service.*;
-
-import java.util.HashMap;
-import java.util.Map;
+import run.halo.app.service.JournalCommentService;
+import run.halo.app.service.JournalService;
+import run.halo.app.service.OptionService;
+import run.halo.app.service.PostCommentService;
+import run.halo.app.service.PostService;
+import run.halo.app.service.SheetCommentService;
+import run.halo.app.service.SheetService;
+import run.halo.app.service.ThemeService;
+import run.halo.app.service.UserService;
+import run.halo.app.service.assembler.PostAssembler;
+import run.halo.app.service.assembler.SheetAssembler;
+import run.halo.app.utils.ValidationUtils;
 
 /**
  * PostComment event listener.
@@ -40,43 +55,63 @@ public class CommentEventListener {
 
     private final PostService postService;
 
+    private final PostAssembler postAssembler;
+
     private final SheetService sheetService;
+
+    private final SheetAssembler sheetAssembler;
 
     private final JournalService journalService;
 
     private final UserService userService;
 
-    public CommentEventListener(MailService mailService, OptionService optionService, PostCommentService postCommentService, SheetCommentService sheetCommentService, JournalCommentService journalCommentService, PostService postService, SheetService sheetService, JournalService journalService, UserService userService) {
+    private final ThemeService themeService;
+
+    public CommentEventListener(MailService mailService, OptionService optionService,
+        PostCommentService postCommentService, SheetCommentService sheetCommentService,
+        JournalCommentService journalCommentService, PostService postService,
+        PostAssembler postAssembler, SheetService sheetService,
+        SheetAssembler sheetAssembler, JournalService journalService,
+        UserService userService,
+        ThemeService themeService) {
         this.mailService = mailService;
         this.optionService = optionService;
         this.postCommentService = postCommentService;
         this.sheetCommentService = sheetCommentService;
         this.journalCommentService = journalCommentService;
         this.postService = postService;
+        this.postAssembler = postAssembler;
         this.sheetService = sheetService;
+        this.sheetAssembler = sheetAssembler;
         this.journalService = journalService;
         this.userService = userService;
+        this.themeService = themeService;
     }
 
     /**
-     * Received a new new comment event.
+     * Received a new comment event.
      *
      * @param newEvent new comment event.
      */
     @Async
-    @EventListener
+    @TransactionalEventListener
     public void handleCommentNewEvent(CommentNewEvent newEvent) {
-        Boolean newCommentNotice = optionService.getByPropertyOrDefault(CommentProperties.NEW_NOTICE, Boolean.class, false);
+        Boolean newCommentNotice = optionService
+            .getByPropertyOrDefault(CommentProperties.NEW_NOTICE, Boolean.class, false);
 
         if (!newCommentNotice) {
             // Skip mailing
             return;
         }
 
-        User user = userService.getCurrentUser().orElseThrow(() -> new ServiceException("未查询到博主信息"));
-
+        User user =
+            userService.getCurrentUser().orElseThrow(() -> new ServiceException("未查询到博主信息"));
 
         Map<String, Object> data = new HashMap<>();
+
+        StringBuilder subject = new StringBuilder();
+
+        Boolean enabledAbsolutePath = optionService.isEnabledAbsolutePath();
 
         if (newEvent.getSource() instanceof PostCommentService) {
             // Get postComment id
@@ -84,29 +119,44 @@ public class CommentEventListener {
 
             log.debug("Got post comment: [{}]", postComment);
 
-            Post post = postService.getById(postComment.getPostId());
+            BasePostMinimalDTO post =
+                postAssembler.convertToMinimal(postService.getById(postComment.getPostId()));
 
-            StrBuilder url = new StrBuilder(optionService.getBlogBaseUrl())
-                    .append("/archives/")
-                    .append(post.getUrl());
-            data.put("url", url.toString());
-            data.put("page", post.getTitle());
+            data.put("pageFullPath", enabledAbsolutePath ? post.getFullPath() :
+                optionService.getBlogBaseUrl() + post.getFullPath());
+            data.put("pageTitle", post.getTitle());
             data.put("author", postComment.getAuthor());
             data.put("content", postComment.getContent());
+            data.put("email", postComment.getEmail());
+            data.put("status", postComment.getStatus());
+            data.put("createTime", postComment.getCreateTime());
+            data.put("authorUrl", postComment.getAuthorUrl());
+
+            subject.append("您的博客文章《")
+                .append(post.getTitle())
+                .append("》有了新的评论。");
+
         } else if (newEvent.getSource() instanceof SheetCommentService) {
             SheetComment sheetComment = sheetCommentService.getById(newEvent.getCommentId());
 
             log.debug("Got sheet comment: [{}]", sheetComment);
 
-            Sheet sheet = sheetService.getById(sheetComment.getPostId());
+            BasePostMinimalDTO sheet =
+                sheetAssembler.convertToMinimal(sheetService.getById(sheetComment.getPostId()));
 
-            StrBuilder url = new StrBuilder(optionService.getBlogBaseUrl())
-                    .append("/s/")
-                    .append(sheet.getUrl());
-            data.put("url", url.toString());
-            data.put("page", sheet.getTitle());
+            data.put("pageFullPath", enabledAbsolutePath ? sheet.getFullPath() :
+                optionService.getBlogBaseUrl() + sheet.getFullPath());
+            data.put("pageTitle", sheet.getTitle());
             data.put("author", sheetComment.getAuthor());
             data.put("content", sheetComment.getContent());
+            data.put("email", sheetComment.getEmail());
+            data.put("status", sheetComment.getStatus());
+            data.put("createTime", sheetComment.getCreateTime());
+            data.put("authorUrl", sheetComment.getAuthorUrl());
+
+            subject.append("您的博客页面《")
+                .append(sheet.getTitle())
+                .append("》有了新的评论。");
         } else if (newEvent.getSource() instanceof JournalCommentService) {
             JournalComment journalComment = journalCommentService.getById(newEvent.getCommentId());
 
@@ -114,26 +164,40 @@ public class CommentEventListener {
 
             Journal journal = journalService.getById(journalComment.getPostId());
 
-            StrBuilder url = new StrBuilder(optionService.getBlogBaseUrl())
-                    .append("/journals");
-            data.put("url", url.toString());
-            data.put("page", journal.getCreateTime());
+            StringBuilder url = new StringBuilder(optionService.getBlogBaseUrl())
+                .append("/")
+                .append(optionService.getJournalsPrefix());
+            data.put("pageFullPath", url);
+            data.put("pageTitle", journal.getCreateTime());
             data.put("author", journalComment.getAuthor());
             data.put("content", journalComment.getContent());
+            data.put("email", journalComment.getEmail());
+            data.put("status", journalComment.getStatus());
+            data.put("createTime", journalComment.getCreateTime());
+            data.put("authorUrl", journalComment.getAuthorUrl());
+
+            subject.append("您的博客日志有了新的评论");
         }
 
-        mailService.sendTemplateMail(user.getEmail(), "您的博客有新的评论", data, "common/mail_template/mail_notice.ftl");
+        String template = "common/mail_template/mail_notice.ftl";
+
+        if (themeService.templateExists("mail_template/mail_notice.ftl")) {
+            template = themeService.renderWithSuffix("mail_template/mail_notice");
+        }
+
+        mailService.sendTemplateMail(user.getEmail(), subject.toString(), data, template);
     }
 
     /**
      * Received a new reply comment event.
      *
-     * @param newEvent reply comment event.
+     * @param replyEvent reply comment event.
      */
     @Async
-    @EventListener
+    @TransactionalEventListener
     public void handleCommentReplyEvent(CommentReplyEvent replyEvent) {
-        Boolean replyCommentNotice = optionService.getByPropertyOrDefault(CommentProperties.REPLY_NOTICE, Boolean.class, false);
+        Boolean replyCommentNotice = optionService
+            .getByPropertyOrDefault(CommentProperties.REPLY_NOTICE, Boolean.class, false);
 
         if (!replyCommentNotice) {
             // Skip mailing
@@ -146,6 +210,10 @@ public class CommentEventListener {
 
         Map<String, Object> data = new HashMap<>();
 
+        StringBuilder subject = new StringBuilder();
+
+        Boolean enabledAbsolutePath = optionService.isEnabledAbsolutePath();
+
         log.debug("replyEvent.getSource():" + replyEvent.getSource().toString());
 
         if (replyEvent.getSource() instanceof PostCommentService) {
@@ -154,7 +222,8 @@ public class CommentEventListener {
 
             PostComment baseComment = postCommentService.getById(postComment.getParentId());
 
-            if (StrUtil.isEmpty(baseComment.getEmail()) && !Validator.isEmail(baseComment.getEmail())) {
+            if (StringUtils.isEmpty(baseComment.getEmail())
+                && !ValidationUtils.isEmail(baseComment.getEmail())) {
                 return;
             }
 
@@ -162,27 +231,41 @@ public class CommentEventListener {
                 return;
             }
 
+            // only send email with published comments
+            if (!postComment.getStatus().equals(CommentStatus.PUBLISHED)) {
+                return;
+            }
+
             baseAuthorEmail = baseComment.getEmail();
 
-            Post post = postService.getById(postComment.getPostId());
+            BasePostMinimalDTO post =
+                postAssembler.convertToMinimal(postService.getById(postComment.getPostId()));
 
-            StrBuilder url = new StrBuilder(optionService.getBlogBaseUrl())
-                    .append("/archives/")
-                    .append(post.getUrl());
-
-            data.put("url", url);
-            data.put("page", post.getTitle());
+            data.put("pageFullPath", enabledAbsolutePath ? post.getFullPath() :
+                optionService.getBlogBaseUrl() + post.getFullPath());
+            data.put("pageTitle", post.getTitle());
             data.put("baseAuthor", baseComment.getAuthor());
             data.put("baseContent", baseComment.getContent());
             data.put("replyAuthor", postComment.getAuthor());
             data.put("replyContent", postComment.getContent());
+            data.put("baseAuthorEmail", baseComment.getEmail());
+            data.put("replyAuthorEmail", postComment.getEmail());
+            data.put("createTime", postComment.getCreateTime());
+            data.put("authorUrl", postComment.getAuthorUrl());
+
+            subject.append("您在【")
+                .append(blogTitle)
+                .append("】评论的文章《")
+                .append(post.getTitle())
+                .append("》有了新的评论。");
         } else if (replyEvent.getSource() instanceof SheetCommentService) {
 
             SheetComment sheetComment = sheetCommentService.getById(replyEvent.getCommentId());
 
             SheetComment baseComment = sheetCommentService.getById(sheetComment.getParentId());
 
-            if (StrUtil.isEmpty(baseComment.getEmail()) && !Validator.isEmail(baseComment.getEmail())) {
+            if (StringUtils.isEmpty(baseComment.getEmail())
+                && !ValidationUtils.isEmail(baseComment.getEmail())) {
                 return;
             }
 
@@ -192,24 +275,35 @@ public class CommentEventListener {
 
             baseAuthorEmail = baseComment.getEmail();
 
-            Sheet sheet = sheetService.getById(sheetComment.getPostId());
+            BasePostMinimalDTO sheet =
+                sheetAssembler.convertToMinimal(sheetService.getById(sheetComment.getPostId()));
 
-            StrBuilder url = new StrBuilder(optionService.getBlogBaseUrl())
-                    .append("/s/")
-                    .append(sheet.getUrl());
-
-            data.put("url", url);
-            data.put("page", sheet.getTitle());
+            data.put("pageFullPath", enabledAbsolutePath ? sheet.getFullPath() :
+                optionService.getBlogBaseUrl() + sheet.getFullPath());
+            data.put("pageTitle", sheet.getTitle());
             data.put("baseAuthor", baseComment.getAuthor());
             data.put("baseContent", baseComment.getContent());
             data.put("replyAuthor", sheetComment.getAuthor());
             data.put("replyContent", sheetComment.getContent());
+            data.put("baseAuthorEmail", baseComment.getEmail());
+            data.put("replyAuthorEmail", sheetComment.getEmail());
+            data.put("createTime", sheetComment.getCreateTime());
+            data.put("authorUrl", sheetComment.getAuthorUrl());
+
+            subject.append("您在【")
+                .append(blogTitle)
+                .append("】评论的页面《")
+                .append(sheet.getTitle())
+                .append("》有了新的评论。");
         } else if (replyEvent.getSource() instanceof JournalCommentService) {
-            JournalComment journalComment = journalCommentService.getById(replyEvent.getCommentId());
+            JournalComment journalComment =
+                journalCommentService.getById(replyEvent.getCommentId());
 
-            JournalComment baseComment = journalCommentService.getById(journalComment.getParentId());
+            JournalComment baseComment =
+                journalCommentService.getById(journalComment.getParentId());
 
-            if (StrUtil.isEmpty(baseComment.getEmail()) && !Validator.isEmail(baseComment.getEmail())) {
+            if (StringUtils.isEmpty(baseComment.getEmail())
+                && !ValidationUtils.isEmail(baseComment.getEmail())) {
                 return;
             }
 
@@ -221,16 +315,32 @@ public class CommentEventListener {
 
             Journal journal = journalService.getById(journalComment.getPostId());
 
-            StrBuilder url = new StrBuilder(optionService.getBlogBaseUrl())
-                    .append("/journals");
-            data.put("url", url);
-            data.put("page", journal.getContent());
+            StringBuilder url = new StringBuilder(optionService.getBlogBaseUrl())
+                .append("/")
+                .append(optionService.getJournalsPrefix());
+            data.put("pageFullPath", url);
+            data.put("pageTitle", journal.getContent());
             data.put("baseAuthor", baseComment.getAuthor());
             data.put("baseContent", baseComment.getContent());
             data.put("replyAuthor", journalComment.getAuthor());
             data.put("replyContent", journalComment.getContent());
+            data.put("baseAuthorEmail", baseComment.getEmail());
+            data.put("replyAuthorEmail", journalComment.getEmail());
+            data.put("createTime", journalComment.getCreateTime());
+            data.put("authorUrl", journalComment.getAuthorUrl());
+
+            subject.append("您在【")
+                .append(blogTitle)
+                .append("】评论的日志")
+                .append("有了新的评论。");
         }
 
-        mailService.sendTemplateMail(baseAuthorEmail, "您在【" + blogTitle + "】的评论有新回复", data, "common/mail_template/mail_reply.ftl");
+        String template = "common/mail_template/mail_reply.ftl";
+
+        if (themeService.templateExists("mail_template/mail_reply.ftl")) {
+            template = themeService.renderWithSuffix("mail_template/mail_reply");
+        }
+
+        mailService.sendTemplateMail(baseAuthorEmail, subject.toString(), data, template);
     }
 }

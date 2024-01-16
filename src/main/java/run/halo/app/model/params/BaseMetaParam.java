@@ -1,12 +1,11 @@
 package run.halo.app.model.params;
 
+import java.lang.reflect.ParameterizedType;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 import lombok.Data;
 import run.halo.app.model.dto.base.InputConverter;
 import run.halo.app.utils.ReflectionUtils;
-
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
-import java.lang.reflect.ParameterizedType;
 
 /**
  * Base meta param.
@@ -18,7 +17,7 @@ import java.lang.reflect.ParameterizedType;
 @Data
 public abstract class BaseMetaParam<META> implements InputConverter<META> {
 
-    @NotBlank(message = "文章id不能为空")
+    @NotBlank(message = "文章 id 不能为空")
     private Integer postId;
 
     @NotBlank(message = "Meta key 不能为空")
@@ -31,6 +30,7 @@ public abstract class BaseMetaParam<META> implements InputConverter<META> {
 
     @Override
     public ParameterizedType parameterizedType() {
-        return ReflectionUtils.getParameterizedTypeBySuperClass(BaseMetaParam.class, this.getClass());
+        return ReflectionUtils
+            .getParameterizedTypeBySuperClass(BaseMetaParam.class, this.getClass());
     }
 }

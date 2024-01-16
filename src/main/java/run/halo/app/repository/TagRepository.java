@@ -1,10 +1,9 @@
 package run.halo.app.repository;
 
+import java.util.Optional;
 import org.springframework.lang.NonNull;
 import run.halo.app.model.entity.Tag;
 import run.halo.app.repository.base.BaseRepository;
-
-import java.util.Optional;
 
 /**
  * Tag repository.
@@ -14,21 +13,21 @@ import java.util.Optional;
 public interface TagRepository extends BaseRepository<Tag, Integer> {
 
     /**
-     * Count by name or slug name.
+     * Count by name or slug.
      *
-     * @param name     tag name must not be null
-     * @param slugName tag slug name must not be null
+     * @param name tag name must not be null
+     * @param slug tag slug must not be null
      * @return tag count
      */
-    long countByNameOrSlugName(@NonNull String name, @NonNull String slugName);
+    long countByNameOrSlug(@NonNull String name, @NonNull String slug);
 
     /**
-     * Get tag by slug name
+     * Get tag by slug
      *
-     * @param slugName slug name must not be null.
-     * @return an optional of slug name.
+     * @param slug slug must not be null.
+     * @return an optional of slug.
      */
-    Optional<Tag> getBySlugName(@NonNull String slugName);
+    Optional<Tag> getBySlug(@NonNull String slug);
 
     /**
      * Get tag by name

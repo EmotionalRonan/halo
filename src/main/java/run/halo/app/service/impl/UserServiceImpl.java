@@ -1,13 +1,15 @@
 package run.halo.app.service.impl;
 
-import cn.hutool.crypto.digest.BCrypt;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
-import run.halo.app.cache.StringCacheStore;
 import run.halo.app.cache.lock.CacheLock;
 import run.halo.app.event.logger.LogEvent;
 import run.halo.app.event.user.UserUpdatedEvent;
@@ -17,17 +19,14 @@ import run.halo.app.exception.NotFoundException;
 import run.halo.app.exception.ServiceException;
 import run.halo.app.model.entity.User;
 import run.halo.app.model.enums.LogType;
+import run.halo.app.model.enums.MFAType;
 import run.halo.app.model.params.UserParam;
 import run.halo.app.repository.UserRepository;
 import run.halo.app.service.UserService;
 import run.halo.app.service.base.AbstractCrudService;
+import run.halo.app.utils.BCrypt;
 import run.halo.app.utils.DateUtils;
 import run.halo.app.utils.HaloUtils;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 /**
  * UserService implementation class.
@@ -41,16 +40,12 @@ public class UserServiceImpl extends AbstractCrudService<User, Integer> implemen
 
     private final UserRepository userRepository;
 
-    private final StringCacheStore stringCacheStore;
-
     private final ApplicationEventPublisher eventPublisher;
 
     public UserServiceImpl(UserRepository userRepository,
-                           StringCacheStore stringCacheStore,
-                           ApplicationEventPublisher eventPublisher) {
+        ApplicationEventPublisher eventPublisher) {
         super(userRepository);
         this.userRepository = userRepository;
-        this.stringCacheStore = stringCacheStore;
         this.eventPublisher = eventPublisher;
     }
 
@@ -75,7 +70,8 @@ public class UserServiceImpl extends AbstractCrudService<User, Integer> implemen
 
     @Override
     public User getByUsernameOfNonNull(String username) {
-        return getByUsername(username).orElseThrow(() -> new NotFoundException("The username does not exist").setErrorData(username));
+        return getByUsername(username).orElseThrow(
+            () -> new NotFoundException("The username does not exist").setErrorData(username));
     }
 
     @Override
@@ -85,7 +81,8 @@ public class UserServiceImpl extends AbstractCrudService<User, Integer> implemen
 
     @Override
     public User getByEmailOfNonNull(String email) {
-        return getByEmail(email).orElseThrow(() -> new NotFoundException("The email does not exist").setErrorData(email));
+        return getByEmail(email).orElseThrow(
+            () -> new NotFoundException("The email does not exist").setErrorData(email));
     }
 
     @Override
@@ -113,7 +110,9 @@ public class UserServiceImpl extends AbstractCrudService<User, Integer> implemen
         User updatedUser = update(user);
 
         // Log it
-        eventPublisher.publishEvent(new LogEvent(this, updatedUser.getId().toString(), LogType.PASSWORD_UPDATED, HaloUtils.desensitize(oldPassword, 2, 1)));
+        eventPublisher.publishEvent(
+            new LogEvent(this, updatedUser.getId().toString(), LogType.PASSWORD_UPDATED,
+                HaloUtils.desensitize(oldPassword, 2, 1)));
 
         return updatedUser;
     }
@@ -135,9 +134,11 @@ public class UserServiceImpl extends AbstractCrudService<User, Integer> implemen
 
         Date now = DateUtils.now();
         if (user.getExpireTime() != null && user.getExpireTime().after(now)) {
-            long seconds = TimeUnit.MILLISECONDS.toSeconds(user.getExpireTime().getTime() - now.getTime());
+            long seconds =
+                TimeUnit.MILLISECONDS.toSeconds(user.getExpireTime().getTime() - now.getTime());
             // If expired
-            throw new ForbiddenException("账号已被停用，请 " + HaloUtils.timeFormat(seconds) + " 后重试").setErrorData(seconds);
+            throw new ForbiddenException("账号已被停用，请 " + HaloUtils.timeFormat(seconds) + " 后重试")
+                .setErrorData(seconds);
         }
     }
 
@@ -145,7 +146,8 @@ public class UserServiceImpl extends AbstractCrudService<User, Integer> implemen
     public boolean passwordMatch(User user, String plainPassword) {
         Assert.notNull(user, "User must not be null");
 
-        return !StringUtils.isBlank(plainPassword) && BCrypt.checkpw(plainPassword, user.getPassword());
+        return !StringUtils.isBlank(plainPassword)
+            && BCrypt.checkpw(plainPassword, user.getPassword());
     }
 
     @Override
@@ -168,7 +170,9 @@ public class UserServiceImpl extends AbstractCrudService<User, Integer> implemen
         User updatedUser = super.update(user);
 
         // Log it
-        eventPublisher.publishEvent(new LogEvent(this, user.getId().toString(), LogType.PROFILE_UPDATED, user.getUsername()));
+        eventPublisher.publishEvent(
+            new LogEvent(this, user.getId().toString(), LogType.PROFILE_UPDATED,
+                user.getUsername()));
         eventPublisher.publishEvent(new UserUpdatedEvent(this, user.getId()));
 
         return updatedUser;
@@ -180,11 +184,34 @@ public class UserServiceImpl extends AbstractCrudService<User, Integer> implemen
         Assert.hasText(plainPassword, "Plain password must not be blank");
 
         user.setPassword(BCrypt.hashpw(plainPassword, BCrypt.gensalt()));
+        user.setMfaType(MFAType.NONE);
+        user.setMfaKey(null);
     }
 
     @Override
     public boolean verifyUser(String username, String password) {
         User user = getCurrentUser().orElseThrow(() -> new ServiceException("未查询到博主信息"));
         return user.getUsername().equals(username) && user.getEmail().equals(password);
+    }
+
+    @Override
+    @NonNull
+    public User updateMFA(@NonNull MFAType mfaType, String mfaKey, @NonNull Integer userId) {
+        Assert.notNull(mfaType, "MFA Type must not be null");
+
+        // get User
+        User user = getById(userId);
+        // set MFA
+        user.setMfaType(mfaType);
+        user.setMfaKey((MFAType.NONE == mfaType) ? null : mfaKey);
+        // Update this user
+        User updatedUser = update(user);
+        // Log it
+        eventPublisher.publishEvent(
+            new LogEvent(this, updatedUser.getId().toString(), LogType.MFA_UPDATED,
+                "MFA Type:" + mfaType));
+
+        return updatedUser;
+
     }
 }

@@ -1,5 +1,12 @@
 package run.halo.app.service.impl;
 
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.persistence.criteria.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
@@ -8,12 +15,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
-import run.halo.app.model.dto.JournalDTO;
+import run.halo.app.exception.BadRequestException;
 import run.halo.app.model.dto.JournalWithCmtCountDTO;
 import run.halo.app.model.entity.Journal;
 import run.halo.app.model.entity.JournalComment;
+import run.halo.app.model.enums.CommentStatus;
 import run.halo.app.model.enums.JournalType;
 import run.halo.app.model.params.JournalParam;
 import run.halo.app.model.params.JournalQuery;
@@ -21,12 +30,7 @@ import run.halo.app.repository.JournalRepository;
 import run.halo.app.service.JournalCommentService;
 import run.halo.app.service.JournalService;
 import run.halo.app.service.base.AbstractCrudService;
-import run.halo.app.utils.MarkdownUtils;
 import run.halo.app.utils.ServiceUtils;
-
-import javax.persistence.criteria.Predicate;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Journal service implementation.
@@ -37,14 +41,15 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class JournalServiceImpl extends AbstractCrudService<Journal, Integer> implements JournalService {
+public class JournalServiceImpl extends AbstractCrudService<Journal, Integer>
+    implements JournalService {
 
     private final JournalRepository journalRepository;
 
     private final JournalCommentService journalCommentService;
 
     public JournalServiceImpl(JournalRepository journalRepository,
-                              JournalCommentService journalCommentService) {
+        JournalCommentService journalCommentService) {
         super(journalRepository);
         this.journalRepository = journalRepository;
         this.journalCommentService = journalCommentService;
@@ -55,7 +60,6 @@ public class JournalServiceImpl extends AbstractCrudService<Journal, Integer> im
         Assert.notNull(journalParam, "Journal param must not be null");
 
         Journal journal = journalParam.convertTo();
-        journal.setContent(MarkdownUtils.renderHtml(journal.getSourceContent()));
 
         return create(journal);
     }
@@ -63,9 +67,6 @@ public class JournalServiceImpl extends AbstractCrudService<Journal, Integer> im
     @Override
     public Journal updateBy(Journal journal) {
         Assert.notNull(journal, "Journal must not be null");
-
-        journal.setContent(MarkdownUtils.renderHtml(journal.getSourceContent()));
-
         return update(journal);
     }
 
@@ -100,10 +101,16 @@ public class JournalServiceImpl extends AbstractCrudService<Journal, Integer> im
     }
 
     @Override
-    public JournalDTO convertTo(Journal journal) {
+    public JournalWithCmtCountDTO convertTo(Journal journal) {
         Assert.notNull(journal, "Journal must not be null");
 
-        return new JournalDTO().convertFrom(journal);
+        JournalWithCmtCountDTO journalWithCmtCountDto = new JournalWithCmtCountDTO()
+            .convertFrom(journal);
+
+        journalWithCmtCountDto.setCommentCount(journalCommentService.countByStatusAndPostId(
+            CommentStatus.PUBLISHED, journal.getId()));
+
+        return journalWithCmtCountDto;
     }
 
     @Override
@@ -116,16 +123,19 @@ public class JournalServiceImpl extends AbstractCrudService<Journal, Integer> im
         Set<Integer> journalIds = ServiceUtils.fetchProperty(journals, Journal::getId);
 
         // Get comment count map
-        Map<Integer, Long> journalCommentCountMap = journalCommentService.countByPostIds(journalIds);
+        Map<Integer, Long> journalCommentCountMap =
+            journalCommentService.countByStatusAndPostIds(CommentStatus.PUBLISHED, journalIds);
 
         return journals.stream()
-                .map(journal -> {
-                    JournalWithCmtCountDTO journalWithCmtCountDTO = new JournalWithCmtCountDTO().convertFrom(journal);
-                    // Set comment count
-                    journalWithCmtCountDTO.setCommentCount(journalCommentCountMap.getOrDefault(journal.getId(), 0L));
-                    return journalWithCmtCountDTO;
-                })
-                .collect(Collectors.toList());
+            .map(journal -> {
+                JournalWithCmtCountDTO journalWithCmtCountDTO =
+                    new JournalWithCmtCountDTO().convertFrom(journal);
+                // Set comment count
+                journalWithCmtCountDTO
+                    .setCommentCount(journalCommentCountMap.getOrDefault(journal.getId(), 0L));
+                return journalWithCmtCountDTO;
+            })
+            .collect(Collectors.toList());
     }
 
     @Override
@@ -133,12 +143,35 @@ public class JournalServiceImpl extends AbstractCrudService<Journal, Integer> im
         Assert.notNull(journalPage, "Journal page must not be null");
 
         // Convert
-        List<JournalWithCmtCountDTO> journalWithCmtCountDTOS = convertToCmtCountDto(journalPage.getContent());
+        List<JournalWithCmtCountDTO> journalWithCmtCountDTOS =
+            convertToCmtCountDto(journalPage.getContent());
 
         // Build and return
-        return new PageImpl<>(journalWithCmtCountDTOS, journalPage.getPageable(), journalPage.getTotalElements());
+        return new PageImpl<>(journalWithCmtCountDTOS, journalPage.getPageable(),
+            journalPage.getTotalElements());
     }
 
+    @Override
+    @Transactional
+    public void increaseLike(Integer id) {
+        increaseLike(1L, id);
+    }
+
+
+    @Override
+    @Transactional
+    public void increaseLike(long likes, Integer id) {
+        Assert.isTrue(likes > 0, "Likes to increase must not be less than 1");
+        Assert.notNull(id, "Journal id must not be null");
+
+        long affectedRows = journalRepository.updateLikes(likes, id);
+
+        if (affectedRows != 1) {
+            log.error("Journal with id: [{}] may not be found", id);
+            throw new BadRequestException(
+                "Failed to increase likes " + likes + " for journal with id " + id);
+        }
+    }
 
     /**
      * Build specification by journal query.
@@ -150,7 +183,7 @@ public class JournalServiceImpl extends AbstractCrudService<Journal, Integer> im
     private Specification<Journal> buildSpecByQuery(@NonNull JournalQuery journalQuery) {
         Assert.notNull(journalQuery, "Journal query must not be null");
 
-        return (Specification<Journal>) (root, query, criteriaBuilder) -> {
+        return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new LinkedList<>();
 
             if (journalQuery.getType() != null) {
@@ -159,7 +192,8 @@ public class JournalServiceImpl extends AbstractCrudService<Journal, Integer> im
 
             if (journalQuery.getKeyword() != null) {
                 // Format like condition
-                String likeCondition = String.format("%%%s%%", StringUtils.strip(journalQuery.getKeyword()));
+                String likeCondition =
+                    String.format("%%%s%%", StringUtils.strip(journalQuery.getKeyword()));
 
                 // Build like predicate
                 Predicate contentLike = criteriaBuilder.like(root.get("content"), likeCondition);

@@ -8,10 +8,10 @@ import run.halo.app.model.dto.UserDTO;
 import run.halo.app.service.UserService;
 
 /**
- * Portal user controller.
+ * Content user controller.
  *
  * @author johnniang
- * @date 4/3/19
+ * @date 2019-04-03
  */
 @RestController("ApiContentUserController")
 @RequestMapping("/api/content/users")
@@ -26,6 +26,7 @@ public class UserController {
     @GetMapping("profile")
     @ApiOperation("Gets blogger profile")
     public UserDTO getProfile() {
-        return userService.getCurrentUser().map(user -> (UserDTO) new UserDTO().convertFrom(user)).get();
+        return userService.getCurrentUser().map(user -> (UserDTO) new UserDTO().convertFrom(user))
+            .get();
     }
 }

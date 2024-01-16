@@ -1,15 +1,14 @@
 package run.halo.app.model.properties;
 
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import run.halo.app.model.enums.ValueEnum;
-
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Property enum.
@@ -19,12 +18,13 @@ import java.util.Map;
  */
 public interface PropertyEnum extends ValueEnum<String> {
 
+
     /**
      * Converts to value with corresponding type
      *
      * @param value string value must not be blank
-     * @param type  property value type must not be null
-     * @param <T>   property value type
+     * @param type property value type must not be null
+     * @param <T> property value type
      * @return property value
      */
     @SuppressWarnings("unchecked")
@@ -65,13 +65,14 @@ public interface PropertyEnum extends ValueEnum<String> {
         }
 
         // Should never happen
-        throw new UnsupportedOperationException("Unsupported convention for blog property type:" + type.getName() + " provided");
+        throw new UnsupportedOperationException(
+            "Unsupported convention for blog property type:" + type.getName() + " provided");
     }
 
     /**
      * Converts to value with corresponding type
      *
-     * @param value        value
+     * @param value value
      * @param propertyEnum property enum must not be null
      * @return property value
      */
@@ -102,8 +103,8 @@ public interface PropertyEnum extends ValueEnum<String> {
      * Converts to enum.
      *
      * @param value string value must not be null
-     * @param type  propertye value enum type must not be null
-     * @param <T>   property value enum type
+     * @param type propertye value enum type must not be null
+     * @param <T> property value enum type
      * @return property enum value or null
      */
     @Nullable
@@ -125,19 +126,20 @@ public interface PropertyEnum extends ValueEnum<String> {
      * @return true if supports; false else
      */
     static boolean isSupportedType(Class<?> type) {
-        return type != null && (
-                type.isAssignableFrom(String.class)
-                        || type.isAssignableFrom(Number.class)
-                        || type.isAssignableFrom(Integer.class)
-                        || type.isAssignableFrom(Long.class)
-                        || type.isAssignableFrom(Boolean.class)
-                        || type.isAssignableFrom(Short.class)
-                        || type.isAssignableFrom(Byte.class)
-                        || type.isAssignableFrom(Double.class)
-                        || type.isAssignableFrom(Float.class)
-                        || type.isAssignableFrom(Enum.class)
-                        || type.isAssignableFrom(ValueEnum.class)
-        );
+        if (type == null) {
+            return false;
+        }
+        return type.isAssignableFrom(String.class)
+            || type.isAssignableFrom(Number.class)
+            || type.isAssignableFrom(Integer.class)
+            || type.isAssignableFrom(Long.class)
+            || type.isAssignableFrom(Boolean.class)
+            || type.isAssignableFrom(Short.class)
+            || type.isAssignableFrom(Byte.class)
+            || type.isAssignableFrom(Double.class)
+            || type.isAssignableFrom(Float.class)
+            || type.isAssignableFrom(Enum.class)
+            || type.isAssignableFrom(ValueEnum.class);
     }
 
     static Map<String, PropertyEnum> getValuePropertyEnumMap() {
@@ -150,11 +152,13 @@ public interface PropertyEnum extends ValueEnum<String> {
         propertyEnumClasses.add(EmailProperties.class);
         propertyEnumClasses.add(OtherProperties.class);
         propertyEnumClasses.add(PostProperties.class);
+        propertyEnumClasses.add(SheetProperties.class);
         propertyEnumClasses.add(PrimaryProperties.class);
         propertyEnumClasses.add(QiniuOssProperties.class);
         propertyEnumClasses.add(SeoProperties.class);
         propertyEnumClasses.add(UpOssProperties.class);
         propertyEnumClasses.add(ApiProperties.class);
+        propertyEnumClasses.add(PermalinkProperties.class);
 
         Map<String, PropertyEnum> result = new HashMap<>();
 
@@ -181,5 +185,26 @@ public interface PropertyEnum extends ValueEnum<String> {
      *
      * @return default value
      */
+    @Nullable
     String defaultValue();
+
+    /**
+     * Default value with given type.
+     *
+     * @param propertyType property type must not be null
+     * @param <T> property type
+     * @return default value with given type
+     */
+    @Nullable
+    default <T> T defaultValue(Class<T> propertyType) {
+        // Get default value
+        String defaultValue = defaultValue();
+        if (defaultValue == null) {
+            return null;
+        }
+
+        // Convert to the given type
+        return PropertyEnum.convertTo(defaultValue, propertyType);
+    }
+
 }

@@ -1,12 +1,11 @@
 package run.halo.app.repository;
 
+import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.lang.NonNull;
 import run.halo.app.model.entity.Sheet;
 import run.halo.app.model.enums.PostStatus;
 import run.halo.app.repository.base.BasePostRepository;
-
-import java.util.Optional;
 
 /**
  * Sheet repository.
@@ -35,13 +34,13 @@ public interface SheetRepository extends BasePostRepository<Sheet> {
     Long countLike();
 
     /**
-     * Gets sheet by url and status.
+     * Gets sheet by slug and status.
      *
-     * @param url    url must not be blank
+     * @param slug slug must not be blank
      * @param status status must not be null
      * @return an optional of sheet.
      */
     @NonNull
     @Override
-    Optional<Sheet> getByUrlAndStatus(@NonNull String url, @NonNull PostStatus status);
+    Optional<Sheet> getBySlugAndStatus(@NonNull String slug, @NonNull PostStatus status);
 }

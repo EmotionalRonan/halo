@@ -1,11 +1,20 @@
 package run.halo.app.model.entity;
 
+import java.util.Date;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Index;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-
-import javax.persistence.*;
-import java.util.Date;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.GenericGenerator;
 
 /**
  * Photo entity
@@ -15,63 +24,72 @@ import java.util.Date;
  */
 @Data
 @Entity
-@Table(name = "photos")
+@Table(name = "photos", indexes = {
+    @Index(name = "photos_team", columnList = "team"),
+    @Index(name = "photos_create_time", columnList = "create_time")})
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public class Photo extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "custom-id")
+    @GenericGenerator(name = "custom-id",
+        strategy = "run.halo.app.model.entity.support.CustomIdGenerator")
     private Integer id;
 
     /**
      * Picture name.
      */
-    @Column(name = "name", columnDefinition = "varchar(255) not null")
+    @Column(name = "name", nullable = false)
     private String name;
 
     /**
      * Picture description.
      */
-    @Column(name = "description", columnDefinition = "varchar(255) default ''")
+    @Column(name = "description")
     private String description;
 
     /**
      * Shooting time / creation time.
      */
-    @Column(name = "take_time", columnDefinition = "timestamp default CURRENT_TIMESTAMP")
+    @Column(name = "take_time")
     @Temporal(TemporalType.TIMESTAMP)
     private Date takeTime;
 
     /**
      * Picture location.
      */
-    @Column(name = "location", columnDefinition = "varchar(255) default ''")
+    @Column(name = "location")
     private String location;
 
     /**
      * Thumbnail
      */
-    @Column(name = "thumbnail", columnDefinition = "varchar(1023) default ''")
+    @Column(name = "thumbnail", length = 1023)
     private String thumbnail;
 
     /**
      * Picture access path.
      */
-    @Column(name = "url", columnDefinition = "varchar(1023) not null")
+    @Column(name = "url", length = 1023, nullable = false)
     private String url;
 
     /**
      * Photo team name.
      */
-    @Column(name = "team", columnDefinition = "varchar(255) default ''")
+    @Column(name = "team")
     private String team;
+
+    /**
+     * Likes.
+     */
+    @Column(name = "likes", nullable = false)
+    @ColumnDefault("0")
+    private Long likes;
 
     @Override
     public void prePersist() {
         super.prePersist();
-        id = null;
 
         if (takeTime == null) {
             takeTime = this.getCreateTime();
@@ -91,6 +109,10 @@ public class Photo extends BaseEntity {
 
         if (team == null) {
             team = "";
+        }
+
+        if (likes == null || likes < 0) {
+            likes = 0L;
         }
     }
 }

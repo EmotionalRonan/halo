@@ -1,24 +1,23 @@
 package run.halo.app.service.base;
 
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import run.halo.app.model.dto.post.BasePostDetailDTO;
-import run.halo.app.model.dto.post.BasePostMinimalDTO;
-import run.halo.app.model.dto.post.BasePostSimpleDTO;
 import run.halo.app.model.entity.BasePost;
+import run.halo.app.model.entity.Content;
+import run.halo.app.model.entity.Content.PatchedContent;
 import run.halo.app.model.enums.PostStatus;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Base post service implementation.
  *
  * @author johnniang
- * @date 19-4-24
+ * @author ryanwang
+ * @author guqing
+ * @date 2019-04-24
  */
 public interface BasePostService<POST extends BasePost> extends CrudService<POST, Integer> {
 
@@ -45,23 +44,59 @@ public interface BasePostService<POST extends BasePost> extends CrudService<POST
     long countByStatus(PostStatus status);
 
     /**
-     * Get post by url.
+     * Get post by slug.
      *
-     * @param url post url.
+     * @param slug post slug.
      * @return Post
      */
     @NonNull
-    POST getByUrl(@NonNull String url);
+    POST getBySlug(@NonNull String slug);
 
     /**
-     * Gets post by post status and url.
+     * Get post with the latest content by id.
+     * content from patch log.
+     *
+     * @param postId post id.
+     * @return post with the latest content.
+     */
+    POST getWithLatestContentById(Integer postId);
+
+    /**
+     * Gets post by post status and slug.
      *
      * @param status post status must not be null
-     * @param url    post url must not be blank
+     * @param slug post slug must not be blank
      * @return post info
      */
     @NonNull
-    POST getBy(@NonNull PostStatus status, @NonNull String url);
+    POST getBy(@NonNull PostStatus status, @NonNull String slug);
+
+    /**
+     * Gets post by post status and id.
+     *
+     * @param status post status must not be null
+     * @param id post id must not be blank
+     * @return post info
+     */
+    @NonNull
+    POST getBy(@NonNull PostStatus status, @NonNull Integer id);
+
+    /**
+     * Gets content by post id.
+     *
+     * @param id post id.
+     * @return a content of post.
+     */
+    Content getContentById(Integer id);
+
+    /**
+     * Gets the latest content by id.
+     * content from patch log.
+     *
+     * @param id post id.
+     * @return a latest content from patchLog of post.
+     */
+    PatchedContent getLatestContentById(Integer id);
 
     /**
      * Lists all posts by post status.
@@ -75,40 +110,40 @@ public interface BasePostService<POST extends BasePost> extends CrudService<POST
     /**
      * Lists previous posts.
      *
-     * @param date date must not be null
+     * @param post post must not be null
      * @param size previous max post size
      * @return a list of previous post
      */
     @NonNull
-    List<POST> listPrePosts(@NonNull Date date, int size);
+    List<POST> listPrevPosts(@NonNull POST post, int size);
 
     /**
      * Lits next posts.
      *
-     * @param date date must not be null
+     * @param post post must not be null
      * @param size next max post size
      * @return a list of next post
      */
     @NonNull
-    List<POST> listNextPosts(@NonNull Date date, int size);
+    List<POST> listNextPosts(@NonNull POST post, int size);
 
     /**
      * Gets previous post.
      *
-     * @param date date must not be null
+     * @param post post must not be null
      * @return an optional post
      */
     @NonNull
-    Optional<POST> getPrePost(@NonNull Date date);
+    Optional<POST> getPrevPost(@NonNull POST post);
 
     /**
      * Gets next post.
      *
-     * @param date date must not be null
+     * @param post post must not be null
      * @return an optional post
      */
     @NonNull
-    Optional<POST> getNextPost(@NonNull Date date);
+    Optional<POST> getNextPost(@NonNull POST post);
 
     /**
      * Pages latest posts.
@@ -140,7 +175,7 @@ public interface BasePostService<POST extends BasePost> extends CrudService<POST
     /**
      * Lists by status.
      *
-     * @param status   post status must not be null
+     * @param status post status must not be null
      * @param pageable page info must not be null
      * @return a page of post
      */
@@ -156,19 +191,19 @@ public interface BasePostService<POST extends BasePost> extends CrudService<POST
     void increaseVisit(long visits, @NonNull Integer postId);
 
     /**
-     * Increase post likes.
-     *
-     * @param likes  likes must not be less than 1
-     * @param postId post id must not be null
-     */
-    void increaseLike(long likes, @NonNull Integer postId);
-
-    /**
      * Increases post visits (1).
      *
      * @param postId post id must not be null
      */
     void increaseVisit(@NonNull Integer postId);
+
+    /**
+     * Increase post likes.
+     *
+     * @param likes likes must not be less than 1
+     * @param postId post id must not be null
+     */
+    void increaseLike(long likes, @NonNull Integer postId);
 
     /**
      * Increases post likes(1).
@@ -187,86 +222,15 @@ public interface BasePostService<POST extends BasePost> extends CrudService<POST
     POST createOrUpdateBy(@NonNull POST post);
 
     /**
-     * Filters post content if the password is not blank.
-     *
-     * @param post original post must not be null
-     * @return filtered post
-     */
-    @NonNull
-    POST filterIfEncrypt(@NonNull POST post);
-
-    /**
-     * Convert POST to minimal dto.
-     *
-     * @param post post must not be null.
-     * @return minimal dto.
-     */
-    @NonNull
-    BasePostMinimalDTO convertToMinimal(@NonNull POST post);
-
-    /**
-     * Convert list of POST to minimal dto of list.
-     *
-     * @param posts posts must not be null.
-     * @return a list of minimal dto.
-     */
-    @NonNull
-    List<BasePostMinimalDTO> convertToMinimal(@Nullable List<POST> posts);
-
-    /**
-     * Convert page of POST to minimal dto of page.
-     *
-     * @param postPage postPage must not be null.
-     * @return a page of minimal dto.
-     */
-    @NonNull
-    Page<BasePostMinimalDTO> convertToMinimal(@NonNull Page<POST> postPage);
-
-    /**
-     * Convert POST to simple dto.
-     *
-     * @param post post must not be null.
-     * @return simple dto.
-     */
-    @NonNull
-    BasePostSimpleDTO convertToSimple(@NonNull POST post);
-
-    /**
-     * Convert list of POST to list of simple dto.
-     *
-     * @param posts posts must not be null.
-     * @return a list of simple dto.
-     */
-    @NonNull
-    List<BasePostSimpleDTO> convertToSimple(@Nullable List<POST> posts);
-
-    /**
-     * Convert page of POST to page of simple dto.
-     *
-     * @param postPage postPage must not be null.
-     * @return a page of simple dto.
-     */
-    @NonNull
-    Page<BasePostSimpleDTO> convertToSimple(@NonNull Page<POST> postPage);
-
-    /**
-     * Convert POST to detail dto.
-     *
-     * @param post post must not be null.
-     * @return detail dto.
-     */
-    @NonNull
-    BasePostDetailDTO convertToDetail(@NonNull POST post);
-
-    /**
      * Updates draft content.
      *
      * @param content draft content could be blank
-     * @param postId  post id must not be null
+     * @param postId post id must not be null
      * @return updated post
      */
     @NonNull
-    POST updateDraftContent(@Nullable String content, @NonNull Integer postId);
+    POST updateDraftContent(@Nullable String content, String originalContent,
+        @NonNull Integer postId);
 
     /**
      * Updates post status.
@@ -281,10 +245,18 @@ public interface BasePostService<POST extends BasePost> extends CrudService<POST
     /**
      * Updates post status by ids.
      *
-     * @param ids    post ids must not be null
+     * @param ids post ids must not be null
      * @param status post status must not be null
      * @return updated posts
      */
     @NonNull
     List<POST> updateStatusByIds(@NonNull List<Integer> ids, @NonNull PostStatus status);
+
+    /**
+     * Generate description.
+     *
+     * @param content html content.
+     * @return description
+     */
+    String generateDescription(@Nullable String content);
 }

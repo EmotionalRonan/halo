@@ -15,19 +15,16 @@ public class SecurityUtils {
     /**
      * Access token cache prefix.
      */
-    private final static String TOKEN_ACCESS_CACHE_PREFIX = "halo.admin.access.token.";
+    private static final String TOKEN_ACCESS_CACHE_PREFIX = "halo.admin.access.token.";
 
     /**
      * Refresh token cache prefix.
      */
-    private final static String TOKEN_REFRESH_CACHE_PREFIX = "halo.admin.refresh.token.";
+    private static final String TOKEN_REFRESH_CACHE_PREFIX = "halo.admin.refresh.token.";
 
-    private final static String ACCESS_TOKEN_CACHE_PREFIX = "halo.admin.access_token.";
+    private static final String ACCESS_TOKEN_CACHE_PREFIX = "halo.admin.access_token.";
 
-    private final static String REFRESH_TOKEN_CACHE_PREFIX = "halo.admin.refresh_token.";
-
-    private final static String TEMP_TOKEN_CACHE_PREFIX = "halo.temp.token.";
-
+    private static final String REFRESH_TOKEN_CACHE_PREFIX = "halo.admin.refresh_token.";
 
     private SecurityUtils() {
     }
@@ -60,10 +57,4 @@ public class SecurityUtils {
         return TOKEN_REFRESH_CACHE_PREFIX + refreshToken;
     }
 
-    @NonNull
-    public static String buildTempTokenKey(@NonNull String tempToken) {
-        Assert.hasText(tempToken, "Temporary token must not be blank");
-
-        return TEMP_TOKEN_CACHE_PREFIX + tempToken;
-    }
 }

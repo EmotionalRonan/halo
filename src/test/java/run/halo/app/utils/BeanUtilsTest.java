@@ -1,45 +1,45 @@
 package run.halo.app.utils;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 import java.util.List;
-
-import static org.junit.Assert.*;
+import java.util.Objects;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.junit.jupiter.api.Test;
 
 /**
  * BeanUtils test.
  *
  * @author johnniang
  */
-public class BeanUtilsTest {
+class BeanUtilsTest {
 
     @Test
-    public void transformFrom() {
+    void transformFrom() {
         TestA a = new TestA(1, 2);
 
         TestC c = BeanUtils.transformFrom(a, TestC.class);
-        assertEquals(a.getA(), c.getA());
-        assertEquals(a.getB(), c.getB());
+        assertEquals(a.getAa(), Objects.requireNonNull(c).getAa());
+        assertEquals(a.getBb(), c.getBb());
 
         TestB b = BeanUtils.transformFrom(a, TestB.class);
-        assertEquals(a.getB(), b.getB());
-        assertNull(b.getC());
+        assertEquals(a.getBb(), Objects.requireNonNull(b).getBb());
+        assertNull(b.getCc());
 
         TestD d = new TestD(a);
         TestE e = BeanUtils.transformFrom(d, TestE.class);
-        assertEquals(d.getA().getA(), e.getA().getA());
+        assertEquals(d.getAa().getAa(), Objects.requireNonNull(e).getAa().getAa());
     }
 
     @Test
-    public void transformFromInBatch() {
+    void transformFromInBatch() {
         TestA[] as = {
-                new TestA(1, 2),
-                new TestA(3, 4)
+            new TestA(1, 2),
+            new TestA(3, 4)
         };
 
         List<TestA> aList = Arrays.asList(as);
@@ -47,68 +47,68 @@ public class BeanUtilsTest {
         List<TestC> cs = BeanUtils.transformFromInBatch(aList, TestC.class);
         assertEquals(as.length, cs.size());
         for (int i = 0; i < cs.size(); i++) {
-            assertEquals(as[i].getA(), cs.get(i).getA());
-            assertEquals(as[i].getB(), cs.get(i).getB());
+            assertEquals(as[i].getAa(), cs.get(i).getAa());
+            assertEquals(as[i].getBb(), cs.get(i).getBb());
         }
 
         List<TestB> bs = BeanUtils.transformFromInBatch(aList, TestB.class);
         assertEquals(as.length, bs.size());
         for (int i = 0; i < bs.size(); i++) {
-            assertEquals(as[i].getB(), bs.get(i).getB());
-            assertNull(bs.get(i).getC());
+            assertEquals(as[i].getBb(), bs.get(i).getBb());
+            assertNull(bs.get(i).getCc());
         }
     }
 
     @Test
-    public void updateProperties() {
+    void updateProperties() {
         TestA a = new TestA(1, 2);
         TestB b = new TestB(3, 4);
         TestC c = new TestC(5, 6);
 
         BeanUtils.updateProperties(a, b);
-        assertEquals(b.getB(), a.getB());
-        assertEquals(b.getC(), Integer.valueOf(4));
+        assertEquals(b.getBb(), a.getBb());
+        assertEquals(b.getCc(), Integer.valueOf(4));
 
         BeanUtils.updateProperties(a, c);
-        assertEquals(c.getA(), a.getA());
-        assertEquals(c.getB(), a.getB());
+        assertEquals(c.getAa(), a.getAa());
+        assertEquals(c.getBb(), a.getBb());
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     static class TestA {
-        private Integer a;
-        private Integer b;
+        private Integer aa;
+        private Integer bb;
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     static class TestB {
-        private Integer b;
-        private Integer c;
+        private Integer bb;
+        private Integer cc;
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     static class TestC {
-        private Integer a;
-        private Integer b;
+        private Integer aa;
+        private Integer bb;
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     static class TestD {
-        private TestA a;
+        private TestA aa;
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     static class TestE {
-        private TestA a;
+        private TestA aa;
     }
 }

@@ -1,16 +1,14 @@
 package run.halo.app.model.support;
 
+import java.io.File;
+import java.util.Optional;
 import org.springframework.http.HttpHeaders;
 
-import java.io.File;
-import java.time.Duration;
-
 /**
- * <pre>
- *     公共常量
- * </pre>
+ * Halo constants.
  *
  * @author ryanwang
+ * @author guqing
  * @date 2017/12/29
  */
 public class HaloConst {
@@ -18,27 +16,53 @@ public class HaloConst {
     /**
      * User home directory.
      */
-    public final static String USER_HOME = System.getProperties().getProperty("user.home");
+    public static final String USER_HOME = System.getProperty("user.home");
 
     /**
      * Temporary directory.
      */
-    public final static String TEMP_DIR = System.getProperties().getProperty("java.io.tmpdir");
+    public static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
+
+    public static final String PROTOCOL_HTTPS = "https://";
+
+    public static final String PROTOCOL_HTTP = "http://";
+
+    public static final String URL_SEPARATOR = "/";
 
     /**
      * Halo backup prefix.
      */
-    public final static String HALO_BACKUP_PREFIX = "halo-backup-";
+    public static final String HALO_BACKUP_PREFIX = "halo-backup-";
+
+    /**
+     * Halo backup markdown prefix.
+     */
+    public static final String HALO_BACKUP_MARKDOWN_PREFIX = "halo-backup-markdown-";
+
+    /**
+     * Halo data export prefix.
+     */
+    public static final String HALO_DATA_EXPORT_PREFIX = "halo-data-export-";
 
     /**
      * Default theme name.
      */
-    public final static String DEFAULT_THEME_ID = "caicai_anatole";
+    public static final String DEFAULT_THEME_ID = "caicai_anatole";
 
     /**
-     * Version constant. (Available in production environment)
+     * Default theme directory name.
      */
-    public static final String HALO_VERSION;
+    public static final String DEFAULT_THEME_DIR_NAME = "anatole";
+
+    /**
+     * Default error path.
+     */
+    public static final String DEFAULT_ERROR_PATH = "common/error/error";
+
+    /**
+     * Default tag color.
+     */
+    public static final String DEFAULT_TAG_COLOR = "#cfd3d7";
 
     /**
      * Path separator.
@@ -46,10 +70,14 @@ public class HaloConst {
     public static final String FILE_SEPARATOR = File.separator;
 
     /**
-     * Suffix of freemarker template file
+     * Post password template name.
+     */
+    public static final String POST_PASSWORD_TEMPLATE = "post_password";
+
+    /**
+     * Suffix of freemarker template file.
      */
     public static final String SUFFIX_FTL = ".ftl";
-
     /**
      * Custom freemarker tag method key.
      */
@@ -61,7 +89,10 @@ public class HaloConst {
     /**
      * 网易云音乐 iframe 代码
      */
-    public static final String NETEASE_MUSIC_IFRAME = "<iframe frameborder=\"no\" border=\"0\" marginwidth=\"0\" marginheight=\"0\" width=330 height=86 src=\"//music.163.com/outchain/player?type=2&id=$1&auto=1&height=66\"></iframe>";
+    public static final String NETEASE_MUSIC_IFRAME =
+        "<iframe frameborder=\"no\" border=\"0\" marginwidth=\"0\" marginheight=\"0\" width=330 "
+            + "height=86 src=\"//music.163.com/outchain/player?type=2&id=$1&auto=1&height=66"
+            + "\"></iframe>";
     /**
      * 网易云音乐短代码正则表达式
      */
@@ -73,11 +104,15 @@ public class HaloConst {
     /**
      * 哔哩哔哩视频 iframe 代码
      */
-    public static final String BILIBILI_VIDEO_IFRAME = "<iframe height=$3 width=$2 src=\"//player.bilibili.com/player.html?aid=$1\" scrolling=\"no\" border=\"0\" frameborder=\"no\" framespacing=\"0\" allowfullscreen=\"true\"> </iframe>";
+    public static final String BILIBILI_VIDEO_IFRAME =
+        "<iframe height=$3 width=$2 src=\"//player.bilibili.com/player.html?aid=$1\" "
+            + "scrolling=\"no\" border=\"0\" frameborder=\"no\" framespacing=\"0\" "
+            + "allowfullscreen=\"true\"> </iframe>";
     /**
      * 哔哩哔哩视频正则表达式
      */
-    public static final String BILIBILI_VIDEO_REG_PATTERN = "\\[bilibili:(\\d+)\\,(\\d+)\\,(\\d+)\\]";
+    public static final String BILIBILI_VIDEO_REG_PATTERN =
+        "\\[bilibili:(\\d+)\\,(\\d+)\\,(\\d+)\\]";
     /**
      * YouTube 视频短代码前缀
      */
@@ -85,49 +120,61 @@ public class HaloConst {
     /**
      * YouTube 视频 iframe 代码
      */
-    public static final String YOUTUBE_VIDEO_IFRAME = "<iframe width=$2 height=$3 src=\"https://www.youtube.com/embed/$1\" frameborder=\"0\" allow=\"accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";
+    public static final String YOUTUBE_VIDEO_IFRAME =
+        "<iframe width=$2 height=$3 src=\"https://www.youtube.com/embed/$1\" frameborder=\"0\" "
+            + "allow=\"accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture\" "
+            + "allowfullscreen></iframe>";
     /**
      * YouTube 视频正则表达式
      */
     public static final String YOUTUBE_VIDEO_REG_PATTERN = "\\[youtube:(\\w+)\\,(\\d+)\\,(\\d+)\\]";
     /**
-     * Github Api url for halo-admin release.
-     */
-    public final static String HALO_ADMIN_RELEASES_LATEST = "https://api.github.com/repos/halo-dev/halo-admin/releases/latest";
-    /**
-     * Halo admin version regex.
-     */
-    public final static String HALO_ADMIN_VERSION_REGEX = "halo-admin-\\d+\\.\\d+(\\.\\d+)?(-\\S*)?\\.zip";
-    public final static String HALO_ADMIN_RELATIVE_PATH = "templates/admin/";
-    public final static String HALO_ADMIN_RELATIVE_BACKUP_PATH = "templates/admin-backup/";
-    /**
      * Content token header name.
      */
-    public final static String API_ACCESS_KEY_HEADER_NAME = "API-" + HttpHeaders.AUTHORIZATION;
+    public static final String API_ACCESS_KEY_HEADER_NAME = "API-" + HttpHeaders.AUTHORIZATION;
     /**
      * Admin token header name.
      */
-    public final static String ADMIN_TOKEN_HEADER_NAME = "ADMIN-" + HttpHeaders.AUTHORIZATION;
+    public static final String ADMIN_TOKEN_HEADER_NAME = "ADMIN-" + HttpHeaders.AUTHORIZATION;
     /**
      * Admin token param name.
      */
-    public final static String ADMIN_TOKEN_QUERY_NAME = "admin_token";
+    public static final String ADMIN_TOKEN_QUERY_NAME = "admin_token";
     /**
      * Temporary token.
      */
-    public final static String TEMP_TOKEN = "temp_token";
+    public static final String TEMP_TOKEN = "temp_token";
     /**
      * Content api token param name
      */
-    public final static String API_ACCESS_KEY_QUERY_NAME = "api_access_key";
-    public final static Duration TEMP_TOKEN_EXPIRATION = Duration.ofDays(7);
+    public static final String API_ACCESS_KEY_QUERY_NAME = "api_access_key";
+    public static final String ONE_TIME_TOKEN_QUERY_NAME = "ott";
+    public static final String ONE_TIME_TOKEN_HEADER_NAME = "ott";
     /**
-     * user_session
+     * Version constant. (Available in production environment)
      */
-    public static String USER_SESSION_KEY = "user_session";
+    public static final String HALO_VERSION;
+
+    /**
+     * Unknown version: unknown
+     */
+    public static final String UNKNOWN_VERSION = "unknown";
+
+    /**
+     * Database product name.
+     */
+    public static String DATABASE_PRODUCT_NAME = null;
+
+    /**
+     * Options cache key.
+     */
+    public static final String OPTIONS_CACHE_KEY = "options";
+
+    public static final String PRIVATE_OPTION_KEY = "private_options";
 
     static {
         // Set version
-        HALO_VERSION = HaloConst.class.getPackage().getImplementationVersion();
+        HALO_VERSION = Optional.ofNullable(HaloConst.class.getPackage().getImplementationVersion())
+            .orElse(UNKNOWN_VERSION);
     }
 }
